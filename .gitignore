@@ -1,0 +1,13 @@
+# Local environment
+.env
+.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp

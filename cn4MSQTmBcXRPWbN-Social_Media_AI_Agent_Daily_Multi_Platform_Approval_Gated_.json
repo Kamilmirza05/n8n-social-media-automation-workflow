@@ -1,0 +1,394 @@
+{
+  "name": "Social Media AI Agent (Daily, Multi-Platform, Approval Gated)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "2075d3dd-9419-4b31-8548-6b73c331e468",
+      "name": "Daily Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1600,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.output || $input.first().json.text;\nlet parsed;\ntry {\n  const cleaned = String(raw).replace(/```json|```/g, '').trim();\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  throw new Error('Could not parse AI output as JSON: ' + raw);\n}\nreturn [{ json: parsed }];"
+      },
+      "id": "d4035ddb-53c5-4f58-b6df-487960abf69c",
+      "name": "Parse Drafts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1088,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "sendAndWait",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "D0BAQLNKCHZ",
+          "mode": "id"
+        },
+        "message": "=New social posts ready for review:\n\n*Twitter/X:*\n{{ $json.twitter }}\n\n*LinkedIn:*\n{{ $json.linkedin }}\n\n*Facebook:*\n{{ $json.facebook }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Approve & Post",
+            "disapproveLabel": "Reject"
+          }
+        },
+        "options": {}
+      },
+      "id": "66ec9d09-cd07-4b78-b6f5-6b7e356355b3",
+      "name": "Request Approval",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -832,
+        272
+      ],
+      "webhookId": "f4bdeeff-3f27-400a-85fd-33180bd093d7",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "Gtw1TxriO6TLNU0E",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b7909926-bb85-4c38-af0d-ed4b455fa934",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -528,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Parse Drafts').item.json.twitter }}",
+        "additionalFields": {}
+      },
+      "id": "b099f382-d9cf-47ed-b9af-7a21317c502e",
+      "name": "Post to Twitter/X",
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [
+        432,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "person": "REPLACE_WITH_YOUR_LINKEDIN_URN",
+        "text": "={{ $('Parse Drafts').item.json.linkedin }}",
+        "additionalFields": {}
+      },
+      "id": "513b3294-b671-4238-9feb-56f66d57e4e4",
+      "name": "Post to LinkedIn",
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        464,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "edge": "feed",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "message",
+                "value": "={{ $('Parse Drafts').item.json.facebook }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "634ce3e1-4587-4de0-9af7-b4bb0e5b4199",
+      "name": "Post to Facebook",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        464,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "mode": "list",
+          "value": "REPLACE_WITH_SHEET_ID"
+        },
+        "sheetName": {
+          "mode": "list",
+          "value": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ $now.toISO() }}",
+            "Twitter": "={{ $('Parse Drafts').item.json.twitter }}",
+            "LinkedIn": "={{ $('Parse Drafts').item.json.linkedin }}",
+            "Facebook": "={{ $('Parse Drafts').item.json.facebook }}",
+            "Status": "Posted"
+          }
+        },
+        "options": {}
+      },
+      "id": "41ea78c0-90fb-4967-8382-1235f57ba5c6",
+      "name": "Log to Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        944,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0B55FUPZQD",
+          "mode": "list",
+          "cachedResultName": "social"
+        },
+        "text": "Today's social post draft was rejected. No posts were published.",
+        "otherOptions": {}
+      },
+      "id": "23cc72ab-a226-422a-928d-0c9c2afc2076",
+      "name": "Notify Rejected",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        480,
+        640
+      ],
+      "webhookId": "baf25847-5d8d-40b6-931b-1a0727e887d7",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "Gtw1TxriO6TLNU0E",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "carousel",
+        "carouselMedia": {
+          "mediaItem": []
+        }
+      },
+      "type": "@mookielianhd/n8n-nodes-instagram.instagram",
+      "typeVersion": 1,
+      "position": [
+        464,
+        80
+      ],
+      "id": "7ca0bffb-1a19-47d1-bbe0-41d926b21f4e",
+      "name": "Publish"
+    },
+    {
+      "parameters": {
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root",
+          "cachedResultName": "/ (Root folder)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1392,
+        272
+      ],
+      "id": "bee514b7-9f82-4add-a558-d86644c959de",
+      "name": "Upload file"
+    }
+  ],
+  "connections": {
+    "Daily Trigger": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Drafts": {
+      "main": [
+        [
+          {
+            "node": "Request Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request Approval": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [
+          {
+            "node": "Post to Twitter/X",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Post to LinkedIn",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Post to Facebook",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Publish",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Twitter/X": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Facebook": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Parse Drafts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "pinData": {},
+  "triggerCount": 0,
+  "meta": null
+}
