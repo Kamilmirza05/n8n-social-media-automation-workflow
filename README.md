@@ -5,12 +5,8 @@ This repository contains exported n8n workflow JSON files.
 ## Included workflows
 
 - AI Agent workflow
-- Sales Data Pipeline
-- API Integration Pipeline
-- Split and Aggregate
 - Social Media AI Agent
-- Binary Nodes example
-- Academy Registration flow
+
 
 ## Notes
 
